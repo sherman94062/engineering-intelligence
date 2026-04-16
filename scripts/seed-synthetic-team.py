@@ -42,6 +42,7 @@ SYNTHETIC_TAG = "synthetic"
 TARGET_TABLES = [
     "accounts",
     "commits",
+    "repos",
     "repo_commits",
     "pull_requests",
     "pull_request_commits",
@@ -67,13 +68,13 @@ def ensure_source_column(engine: Engine, dry_run: bool) -> None:
         rows = conn.execute(
             text(
                 """
-                SELECT table_name, column_name
+                SELECT LOWER(table_name) AS tbl
                 FROM information_schema.columns
                 WHERE table_schema = DATABASE() AND column_name = 'source'
                 """
             )
         ).all()
-        existing = {r.table_name.lower() for r in rows}
+        existing = {r.tbl for r in rows}
 
         for table in TARGET_TABLES:
             if table in existing:
@@ -513,7 +514,7 @@ def insert_prs(conn, prs: list[PullRequest]) -> int:
                     "id": comment_id,
                     "pull_request_id": pr.id,
                     "body": _synth_review_comment(idx),
-                    "user_id": reviewer.id,
+                    "account_id": reviewer.id,
                     "created_date": when,
                     "type": "DIFF" if idx % 3 else "GENERAL",
                     "source": SYNTHETIC_TAG,
@@ -541,7 +542,7 @@ def insert_prs(conn, prs: list[PullRequest]) -> int:
         "pull_request_comments",
         pr_comment_rows,
         [
-            "id", "pull_request_id", "body", "user_id", "created_date",
+            "id", "pull_request_id", "body", "account_id", "created_date",
             "type", "source",
         ],
     )

@@ -17,10 +17,10 @@ mcp = get_mcp()
 def tables() -> list[dict[str, Any]]:
     rows = run_query(
         """
-        SELECT table_name AS name, table_rows AS approx_rows
+        SELECT LOWER(table_name) AS name, table_rows AS approx_rows
         FROM information_schema.tables
         WHERE table_schema = DATABASE()
-        ORDER BY table_name
+        ORDER BY name
         """
     )
     return coerce_rows(rows)
@@ -33,7 +33,12 @@ def tables() -> list[dict[str, Any]]:
 def describe(table: str) -> list[dict[str, Any]]:
     rows = run_query(
         """
-        SELECT column_name, data_type, is_nullable, column_key, column_comment
+        SELECT
+            column_name AS COLUMN_NAME,
+            data_type AS DATA_TYPE,
+            is_nullable AS IS_NULLABLE,
+            column_key AS COLUMN_KEY,
+            column_comment AS COLUMN_COMMENT
         FROM information_schema.columns
         WHERE table_schema = DATABASE() AND table_name = :table
         ORDER BY ordinal_position
