@@ -20,12 +20,26 @@ recipes. Quick-start below.
 
 ```bash
 cp devlake-config/env.example devlake-config/env
-$EDITOR devlake-config/env      # fill in GITHUB_TOKEN etc.
+$EDITOR devlake-config/env      # fill in GITHUB_TOKEN; set a real DEVLAKE_ENCRYPTION_SECRET
+
+# Install the small Python deps bootstrap.sh + the seeder need.
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r scripts/requirements.txt
 
 ./scripts/bootstrap.sh          # compose up, wait for devlake, configure GitHub, run pipeline
-python scripts/seed-synthetic-team.py
+python scripts/seed-synthetic-team.py   # run after the first pipeline finishes
 
 cd mcp && uv pip install -e . && uv run server.py
+```
+
+The same `.venv` works for `bootstrap.sh` and `seed-synthetic-team.py`. The MCP
+server has its own dependency set managed by `uv` in `mcp/pyproject.toml`.
+
+A good `DEVLAKE_ENCRYPTION_SECRET` value:
+
+```bash
+openssl rand -hex 32
 ```
 
 Then:
