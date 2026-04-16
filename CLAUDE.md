@@ -337,14 +337,16 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 }
 ```
 
-Or if running as a hosted server:
+Or, if the Streamable HTTP server (docker or local) is already running on
+port 8811, use `mcp-remote` as a bridge — Claude Desktop's config format
+doesn't support raw `url` entries:
 
 ```json
 {
   "mcpServers": {
     "devlake": {
-      "url": "http://localhost:8811/mcp",
-      "headers": {}
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "http://localhost:8811/mcp"]
     }
   }
 }

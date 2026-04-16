@@ -19,20 +19,27 @@ Dockerfile in `mcp/`. It connects to `mysql:3306` via the compose network.
 
 ## Wire up Claude Desktop
 
+Claude Desktop's config format spawns each MCP server as a subprocess. To
+connect to our HTTP server, use `mcp-remote` as the bridge.
+
 `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "devlake": {
-      "url": "http://localhost:8811/mcp",
-      "headers": {}
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "http://localhost:8811/mcp"]
     }
   }
 }
 ```
 
-Or run the server via uv instead of hitting the URL:
+Fully quit Claude Desktop (⌘Q, not close) and reopen to pick up the config
+change. The 23 devlake tools should appear in the MCP menu.
+
+Or run the server via uv as a subprocess instead of going through the
+container + mcp-remote:
 
 ```json
 {
