@@ -69,6 +69,9 @@ class DevLakeClient:
     def patch(self, path: str, json: Any = None, **kw: Any) -> Any:
         return self.request("PATCH", path, json=json, **kw)
 
+    def put(self, path: str, json: Any = None, **kw: Any) -> Any:
+        return self.request("PUT", path, json=json, **kw)
+
     def delete(self, path: str, **kw: Any) -> Any:
         return self.request("DELETE", path, **kw)
 
