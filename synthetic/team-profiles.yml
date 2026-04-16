@@ -1,0 +1,75 @@
+# Synthetic engineer personas for the devlake-mcp team layer.
+#
+# Each persona produces a distinct behavioural signature in commits, PRs,
+# review comments, and incident involvement. The seeder picks personas in
+# the declared order until `count` engineers have been created. Persona
+# names, emails, and handles are generated deterministically from the
+# RNG seed so reruns produce identical synthetic data.
+
+seed: 20260416
+
+engineers:
+  total: 12
+
+# The knobs below are rates / distributions. Values map 1:1 to parameters
+# used by scripts/seed-synthetic-team.py; tuning them reshapes the picture.
+personas:
+  - key: ai_power_user
+    label: "AI Power User"
+    count: 3
+    commits_per_week: { mean: 28, stddev: 6 }
+    lines_per_commit: { mean: 420, stddev: 180 }    # batch-generated diffs
+    commit_burst_probability: 0.55                   # multiple commits in < 15m
+    pr_iterations: { mean: 4.2, stddev: 1.3 }        # Architecture-Code Gap proxy
+    pr_review_comments: { mean: 9, stddev: 4 }
+    post_merge_churn_rate: 0.32                      # files re-touched within 7d
+    incident_creation_probability: 0.11              # AI-deploys cause more issues
+    review_activity_rate: 0.25                       # how often they review peers
+    cycle_time_hours: { mean: 14, stddev: 8 }
+    ai_signal_label: "high"
+
+  - key: ai_adopter
+    label: "AI Adopter"
+    count: 4
+    commits_per_week: { mean: 19, stddev: 5 }
+    lines_per_commit: { mean: 180, stddev: 90 }
+    commit_burst_probability: 0.28
+    pr_iterations: { mean: 2.8, stddev: 1.0 }
+    pr_review_comments: { mean: 6, stddev: 3 }
+    post_merge_churn_rate: 0.18
+    incident_creation_probability: 0.07
+    review_activity_rate: 0.45
+    cycle_time_hours: { mean: 26, stddev: 12 }
+    ai_signal_label: "moderate"
+
+  - key: traditional
+    label: "Traditional"
+    count: 3
+    commits_per_week: { mean: 11, stddev: 3 }
+    lines_per_commit: { mean: 55, stddev: 25 }       # small, focused commits
+    commit_burst_probability: 0.05
+    pr_iterations: { mean: 1.8, stddev: 0.6 }
+    pr_review_comments: { mean: 4, stddev: 2 }
+    post_merge_churn_rate: 0.06
+    incident_creation_probability: 0.04
+    review_activity_rate: 0.60
+    cycle_time_hours: { mean: 42, stddev: 20 }
+    ai_signal_label: "low"
+
+  - key: senior_reviewer
+    label: "Senior Reviewer"
+    count: 2
+    commits_per_week: { mean: 5, stddev: 2 }         # few commits
+    lines_per_commit: { mean: 90, stddev: 40 }
+    commit_burst_probability: 0.08
+    pr_iterations: { mean: 2.2, stddev: 0.8 }
+    pr_review_comments: { mean: 16, stddev: 5 }      # heavy commenters
+    post_merge_churn_rate: 0.08
+    incident_creation_probability: 0.02
+    review_activity_rate: 0.85                        # reviews almost everything
+    cycle_time_hours: { mean: 30, stddev: 14 }
+    ai_signal_label: "low"
+
+# Overrides on any individual engineer can be listed here.
+# Left empty by default so personas alone drive the shape.
+overrides: []

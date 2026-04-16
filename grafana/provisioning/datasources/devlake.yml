@@ -1,0 +1,17 @@
+apiVersion: 1
+
+datasources:
+  - name: DevLake
+    type: mysql
+    access: proxy
+    url: mysql:3306
+    database: lake
+    user: devlake
+    secureJsonData:
+      password: ${MYSQL_PASSWORD}
+    jsonData:
+      maxOpenConns: 10
+      maxIdleConns: 5
+      connMaxLifetime: 14400
+    isDefault: true
+    editable: true

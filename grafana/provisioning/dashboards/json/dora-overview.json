@@ -1,0 +1,133 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": { "type": "mysql", "uid": "DevLake" },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }] }, "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "title": "Deploys (90d)",
+      "type": "stat",
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) AS deploys FROM cicd_pipelines WHERE type='DEPLOYMENT' AND result='SUCCESS' AND finished_date > DATE_SUB(NOW(), INTERVAL 90 DAY)"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "mysql", "uid": "DevLake" },
+      "fieldConfig": { "defaults": { "unit": "h" }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "title": "Lead Time mean (90d)",
+      "type": "stat",
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "format": "table",
+          "rawSql": "SELECT ROUND(AVG(TIMESTAMPDIFF(MINUTE, c.authored_date, p.finished_date)) / 60, 2) AS hours FROM cicd_pipelines p JOIN cicd_pipeline_commits pc ON pc.pipeline_id = p.id JOIN commits c ON c.sha = pc.commit_sha WHERE p.type='DEPLOYMENT' AND p.result='SUCCESS' AND p.finished_date > DATE_SUB(NOW(), INTERVAL 90 DAY)"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "mysql", "uid": "DevLake" },
+      "fieldConfig": { "defaults": { "unit": "percent" }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "id": 3,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "title": "Change Failure Rate (90d)",
+      "type": "stat",
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "format": "table",
+          "rawSql": "SELECT ROUND(100.0 * SUM(CASE WHEN EXISTS (SELECT 1 FROM issues i WHERE i.type='INCIDENT' AND i.created_date BETWEEN p.finished_date AND DATE_ADD(p.finished_date, INTERVAL 24 HOUR)) THEN 1 ELSE 0 END) / NULLIF(COUNT(*),0), 2) AS cfr FROM cicd_pipelines p WHERE p.type='DEPLOYMENT' AND p.finished_date > DATE_SUB(NOW(), INTERVAL 90 DAY)"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "mysql", "uid": "DevLake" },
+      "fieldConfig": { "defaults": { "unit": "h" }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "id": 4,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "title": "Time to Restore mean (90d)",
+      "type": "stat",
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "format": "table",
+          "rawSql": "SELECT ROUND(AVG(lead_time_minutes)/60.0, 2) AS hours FROM issues WHERE type='INCIDENT' AND created_date > DATE_SUB(NOW(), INTERVAL 90 DAY) AND resolution_date IS NOT NULL"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "mysql", "uid": "DevLake" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 4 },
+      "id": 5,
+      "title": "Deploys by week (last 26w)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "format": "time_series",
+          "rawSql": "SELECT DATE(FROM_DAYS(TO_DAYS(p.finished_date) - MOD(TO_DAYS(p.finished_date) - 2, 7))) AS time, COUNT(*) AS value FROM cicd_pipelines p WHERE p.type='DEPLOYMENT' AND p.finished_date > DATE_SUB(NOW(), INTERVAL 26 WEEK) GROUP BY 1 ORDER BY 1"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "mysql", "uid": "DevLake" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 4 },
+      "id": 6,
+      "title": "PR cycle time (hours) by repo",
+      "type": "bargauge",
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "format": "table",
+          "rawSql": "SELECT r.name AS repo, ROUND(AVG(TIMESTAMPDIFF(HOUR, pr.created_date, pr.merged_date)), 2) AS mean_hours FROM pull_requests pr JOIN repos r ON r.id = pr.base_repo_id WHERE pr.merged_date > DATE_SUB(NOW(), INTERVAL 90 DAY) GROUP BY r.name ORDER BY mean_hours DESC"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "mysql", "uid": "DevLake" },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 13 },
+      "id": 7,
+      "title": "Top contributors (90d)",
+      "type": "table",
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "format": "table",
+          "rawSql": "SELECT a.user_name AS author, COUNT(c.sha) AS commits, SUM(c.additions) AS lines_added, SUM(c.deletions) AS lines_removed FROM accounts a LEFT JOIN commits c ON c.author_id = a.id AND c.authored_date > DATE_SUB(NOW(), INTERVAL 90 DAY) GROUP BY a.user_name HAVING commits > 0 ORDER BY commits DESC LIMIT 25"
+        }
+      ]
+    }
+  ],
+  "refresh": "5m",
+  "schemaVersion": 39,
+  "tags": ["dora", "devlake"],
+  "templating": { "list": [] },
+  "time": { "from": "now-90d", "to": "now" },
+  "timezone": "browser",
+  "title": "DORA Overview",
+  "uid": "devlake-dora-overview",
+  "version": 1,
+  "weekStart": ""
+}

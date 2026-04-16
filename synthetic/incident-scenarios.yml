@@ -1,0 +1,59 @@
+# Incident archetypes driving synthetic CFR + TTR.
+#
+# The seeder samples one archetype per injected incident using the weights
+# below. `trigger.post_deploy_minutes` pins the incident to a recent deploy so
+# DevLake's Change Failure Rate / Time to Restore calculations produce
+# realistic numbers.
+
+archetypes:
+  - key: config_regression
+    label: "Config regression"
+    weight: 0.40
+    severity: high
+    ttr_hours: { mean: 2.5, stddev: 1.2 }
+    trigger:
+      post_deploy_minutes: { min: 5, max: 60 }
+      repos: ["*"]
+    description_template: |
+      Config change in {repo} caused {feature} to misbehave.
+      Resolution: revert commit {sha} and redeploy.
+
+  - key: data_pipeline_break
+    label: "Data pipeline break"
+    weight: 0.25
+    severity: medium
+    ttr_hours: { mean: 6.0, stddev: 3.0 }
+    trigger:
+      post_deploy_minutes: { min: 30, max: 240 }
+      repos: ["argus", "dbt-semantic-layer-agent", "analytics-agent"]
+    description_template: |
+      Downstream dbt model {model} failed after deploy of {repo}@{sha}.
+      Root cause: schema drift introduced in the PR.
+
+  - key: auth_service_outage
+    label: "Auth service outage"
+    weight: 0.20
+    severity: critical
+    ttr_hours: { mean: 1.5, stddev: 0.6 }
+    trigger:
+      post_deploy_minutes: { min: 0, max: 30 }
+      repos: ["mcp-security-stack", "databricks-mcp-server", "nl-to-sql-agent"]
+    description_template: |
+      Token validation broke after {repo}@{sha}.
+      Fast rollback; postmortem required.
+
+  - key: memory_leak
+    label: "Slow memory leak"
+    weight: 0.15
+    severity: medium
+    ttr_hours: { mean: 18.0, stddev: 8.0 }
+    trigger:
+      post_deploy_minutes: { min: 60, max: 720 }
+      repos: ["*"]
+    description_template: |
+      Gradual memory growth detected in {repo} service after {sha}.
+      Root cause: unbounded cache; fix gated behind patch release.
+
+# % of deploys that will trigger an incident. Raise to stress CFR; lower
+# for a healthier-looking picture.
+deploy_incident_rate: 0.08

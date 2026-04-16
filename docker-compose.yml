@@ -1,0 +1,96 @@
+name: devlake-mcp
+
+services:
+  mysql:
+    image: mysql:8
+    container_name: devlake-mysql
+    restart: unless-stopped
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_bin
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      TZ: ${TZ}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  devlake:
+    image: apache/devlake:latest
+    container_name: devlake
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}?charset=utf8mb4&parseTime=True
+      LOGGING_DIR: /app/logs
+      ENCRYPTION_SECRET: ${DEVLAKE_ENCRYPTION_SECRET}
+      TZ: ${TZ}
+    ports:
+      - "8080:8080"
+    volumes:
+      - devlake-logs:/app/logs
+
+  config-ui:
+    image: apache/devlake-config-ui:latest
+    container_name: devlake-config-ui
+    restart: unless-stopped
+    depends_on:
+      - devlake
+    environment:
+      DEVLAKE_ENDPOINT: devlake:8080
+      GRAFANA_ENDPOINT: grafana:3000
+      ADMIN_USER: ${DEVLAKE_ADMIN_USER}
+      ADMIN_PASS: ${DEVLAKE_ADMIN_PASS}
+      TZ: ${TZ}
+    ports:
+      - "4000:4000"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: devlake-grafana
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GF_SECURITY_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD}
+      GF_INSTALL_PLUGINS: grafana-mysql-datasource
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      TZ: ${TZ}
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+
+  mcp-server:
+    build:
+      context: ./mcp
+      dockerfile: Dockerfile
+    container_name: devlake-mcp-server
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_URL: mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
+      MCP_PORT: ${MCP_PORT}
+      MCP_HOST: ${MCP_HOST}
+      TZ: ${TZ}
+    ports:
+      - "8811:8811"
+
+volumes:
+  mysql-data:
+  devlake-logs:
+  grafana-data:

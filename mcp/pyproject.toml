@@ -1,0 +1,33 @@
+[project]
+name = "devlake-mcp"
+version = "0.1.0"
+description = "Read-only MCP server over DevLake's domain schema"
+requires-python = ">=3.11"
+authors = [{ name = "sherman94062" }]
+readme = "README.md"
+dependencies = [
+  "fastmcp>=2.0",
+  "sqlalchemy>=2.0",
+  "pymysql>=1.1",
+  "cryptography>=42.0",
+  "python-dotenv>=1.0",
+  "pydantic>=2.6",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "pytest-asyncio>=0.23",
+  "ruff>=0.5",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["tools", "queries"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

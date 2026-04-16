@@ -1,0 +1,42 @@
+# Secrets
+devlake-config/env
+.env
+.env.local
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+.uv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node (in case)
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Docker local state
+volumes/
+data/
+
+# Logs
+*.log
+logs/
+
+# MCP build
+dist/
+build/
