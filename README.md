@@ -17,7 +17,7 @@ real data.
 |------------|-------|----------------------------------------|
 | devlake    | 8080  | Ingest pipeline + REST API             |
 | mysql      | 3306  | DevLake metadata + domain store        |
-| grafana    | 3000  | Provisioned DORA dashboard             |
+| grafana    | 3002  | Provisioned DORA dashboard             |
 | config-ui  | 4000  | DevLake web configuration              |
 | mcp-server | 8811  | FastMCP server over Streamable HTTP    |
 

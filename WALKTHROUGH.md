@@ -203,7 +203,7 @@ python scripts/seed-synthetic-team.py --dry-run
 
 ## 6 · Sanity-check before wiring Claude
 
-Open Grafana: <http://localhost:3000> (admin / admin). The *DORA Overview*
+Open Grafana: <http://localhost:3002> (admin / admin). The *DORA Overview*
 dashboard in the DORA folder should be populated.
 
 Or query MySQL directly:

@@ -87,7 +87,7 @@ devlake-mcp/
 |---------------|------------------------------|-------|---------------------------------|
 | devlake       | apache/devlake:latest        | 8080  | DevLake API + pipeline engine   |
 | mysql         | mysql:8                      | 3306  | DevLake metadata store          |
-| grafana       | grafana/grafana:latest       | 3000  | DORA dashboards                 |
+| grafana       | grafana/grafana:latest       | 3002  | DORA dashboards                 |
 | config-ui     | apache/devlake-config-ui     | 4000  | DevLake web configuration UI    |
 | mcp-server    | local build                  | 8811  | FastMCP server over Streamable HTTP |
 
@@ -159,7 +159,7 @@ uv pip install -e .
 uv run server.py
 
 # 8. Open Grafana dashboards
-open http://localhost:3000   # admin / admin (change on first login)
+open http://localhost:3002   # admin / admin (change on first login)
 
 # 9. Open DevLake config UI
 open http://localhost:4000

@@ -5,129 +5,424 @@
   "graphTooltip": 0,
   "id": null,
   "liveNow": false,
+  "refresh": "5m",
+  "schemaVersion": 39,
+  "tags": ["dora", "devlake", "engineering-intelligence"],
+  "templating": {
+    "list": [
+      {
+        "name": "repo",
+        "label": "Repo",
+        "type": "query",
+        "datasource": { "type": "mysql", "uid": "DevLake" },
+        "query": "SELECT DISTINCT name FROM repos ORDER BY name",
+        "refresh": 1,
+        "includeAll": true,
+        "multi": true,
+        "allValue": null,
+        "current": { "selected": true, "text": ["All"], "value": ["$__all"] }
+      },
+      {
+        "name": "include_synthetic",
+        "label": "Synthetic data",
+        "type": "custom",
+        "query": "true,false",
+        "options": [
+          { "selected": true, "text": "true", "value": "true" },
+          { "selected": false, "text": "false", "value": "false" }
+        ],
+        "current": { "selected": true, "text": "true", "value": "true" }
+      }
+    ]
+  },
+  "time": { "from": "now-90d", "to": "now" },
+  "timezone": "browser",
+  "title": "Engineering Intelligence — Executive View",
+  "uid": "devlake-dora-overview",
+  "version": 2,
+  "weekStart": "",
   "panels": [
     {
-      "datasource": { "type": "mysql", "uid": "DevLake" },
-      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }] }, "unit": "short" }, "overrides": [] },
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "id": 100,
+      "type": "text",
+      "title": "",
+      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 0 },
+      "options": {
+        "mode": "markdown",
+        "content": "## Engineering Intelligence — Executive View\n\nDORA metrics + AI-era engineering signals. Filter by repo and toggle synthetic data above. Ask follow-up questions via the [devlake MCP](http://localhost:8811/mcp) in Claude — e.g. _\"show team__architecture_code_gap and explain the top 3\"_."
+      }
+    },
+    {
       "id": 1,
-      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "title": "Deploys (90d)",
       "type": "stat",
+      "title": "How often do you ship? (deploys in window)",
+      "description": "Google DORA 2023: Elite ≥ 1/day, High ≥ 1/week, Medium ≥ 1/month, Low < 1/month. Band coloring uses the 90-day window.",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 3 },
+      "datasource": { "type": "mysql", "uid": "DevLake" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 3 },
+              { "color": "green", "value": 13 },
+              { "color": "super-light-green", "value": 90 }
+            ]
+          },
+          "mappings": []
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "value_and_name"
+      },
       "targets": [
         {
           "refId": "A",
           "rawQuery": true,
           "format": "table",
-          "rawSql": "SELECT COUNT(*) AS deploys FROM cicd_pipelines WHERE type='DEPLOYMENT' AND result='SUCCESS' AND finished_date > DATE_SUB(NOW(), INTERVAL 90 DAY)"
+          "rawSql": "SELECT COUNT(*) AS deploys FROM cicd_pipelines p JOIN cicd_pipeline_commits pc ON pc.pipeline_id = p.id JOIN repos r ON r.id = pc.repo_id WHERE p.type='DEPLOYMENT' AND p.result='SUCCESS' AND p.finished_date BETWEEN FROM_UNIXTIME($__unixEpochFrom()) AND FROM_UNIXTIME($__unixEpochTo()) AND r.name IN ($repo) AND ('$include_synthetic' = 'true' OR p.source IS NULL OR p.source != 'synthetic')"
         }
       ]
     },
     {
-      "datasource": { "type": "mysql", "uid": "DevLake" },
-      "fieldConfig": { "defaults": { "unit": "h" }, "overrides": [] },
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
       "id": 2,
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
-      "title": "Lead Time mean (90d)",
       "type": "stat",
+      "title": "How fast do you ship it? (mean lead time, hours)",
+      "description": "From first commit to successful deploy. Elite < 1h, High < 24h, Medium < 168h (1 week), Low ≥ 1 week.",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 3 },
+      "datasource": { "type": "mysql", "uid": "DevLake" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "h",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "super-light-green", "value": null },
+              { "color": "green", "value": 1 },
+              { "color": "orange", "value": 24 },
+              { "color": "red", "value": 168 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "value_and_name"
+      },
       "targets": [
         {
           "refId": "A",
           "rawQuery": true,
           "format": "table",
-          "rawSql": "SELECT ROUND(AVG(TIMESTAMPDIFF(MINUTE, c.authored_date, p.finished_date)) / 60, 2) AS hours FROM cicd_pipelines p JOIN cicd_pipeline_commits pc ON pc.pipeline_id = p.id JOIN commits c ON c.sha = pc.commit_sha WHERE p.type='DEPLOYMENT' AND p.result='SUCCESS' AND p.finished_date > DATE_SUB(NOW(), INTERVAL 90 DAY)"
+          "rawSql": "SELECT ROUND(AVG(TIMESTAMPDIFF(MINUTE, c.authored_date, p.finished_date)) / 60.0, 2) AS hours FROM cicd_pipelines p JOIN cicd_pipeline_commits pc ON pc.pipeline_id = p.id JOIN commits c ON c.sha = pc.commit_sha JOIN repos r ON r.id = pc.repo_id WHERE p.type='DEPLOYMENT' AND p.result='SUCCESS' AND p.finished_date BETWEEN FROM_UNIXTIME($__unixEpochFrom()) AND FROM_UNIXTIME($__unixEpochTo()) AND r.name IN ($repo) AND ('$include_synthetic' = 'true' OR p.source IS NULL OR p.source != 'synthetic')"
         }
       ]
     },
     {
-      "datasource": { "type": "mysql", "uid": "DevLake" },
-      "fieldConfig": { "defaults": { "unit": "percent" }, "overrides": [] },
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
       "id": 3,
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
-      "title": "Change Failure Rate (90d)",
       "type": "stat",
+      "title": "How often do deploys break prod? (CFR, %)",
+      "description": "Share of deploys followed by an incident within 24h. Elite < 5%, High < 10%, Medium < 15%, Low ≥ 15%.",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 3 },
+      "datasource": { "type": "mysql", "uid": "DevLake" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "super-light-green", "value": null },
+              { "color": "green", "value": 5 },
+              { "color": "orange", "value": 10 },
+              { "color": "red", "value": 15 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "value_and_name"
+      },
       "targets": [
         {
           "refId": "A",
           "rawQuery": true,
           "format": "table",
-          "rawSql": "SELECT ROUND(100.0 * SUM(CASE WHEN EXISTS (SELECT 1 FROM issues i WHERE i.type='INCIDENT' AND i.created_date BETWEEN p.finished_date AND DATE_ADD(p.finished_date, INTERVAL 24 HOUR)) THEN 1 ELSE 0 END) / NULLIF(COUNT(*),0), 2) AS cfr FROM cicd_pipelines p WHERE p.type='DEPLOYMENT' AND p.finished_date > DATE_SUB(NOW(), INTERVAL 90 DAY)"
+          "rawSql": "SELECT ROUND(100.0 * SUM(CASE WHEN EXISTS (SELECT 1 FROM issues i WHERE i.type='INCIDENT' AND i.created_date BETWEEN p.finished_date AND DATE_ADD(p.finished_date, INTERVAL 24 HOUR) AND ('$include_synthetic' = 'true' OR i.source IS NULL OR i.source != 'synthetic')) THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 2) AS cfr FROM cicd_pipelines p JOIN cicd_pipeline_commits pc ON pc.pipeline_id = p.id JOIN repos r ON r.id = pc.repo_id WHERE p.type='DEPLOYMENT' AND p.finished_date BETWEEN FROM_UNIXTIME($__unixEpochFrom()) AND FROM_UNIXTIME($__unixEpochTo()) AND r.name IN ($repo) AND ('$include_synthetic' = 'true' OR p.source IS NULL OR p.source != 'synthetic')"
         }
       ]
     },
     {
-      "datasource": { "type": "mysql", "uid": "DevLake" },
-      "fieldConfig": { "defaults": { "unit": "h" }, "overrides": [] },
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
       "id": 4,
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
-      "title": "Time to Restore mean (90d)",
       "type": "stat",
+      "title": "How fast do you recover? (mean TTR, hours)",
+      "description": "Mean incident resolution time. Elite < 1h, High < 24h, Medium < 168h, Low ≥ 1 week.",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 3 },
+      "datasource": { "type": "mysql", "uid": "DevLake" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "h",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "super-light-green", "value": null },
+              { "color": "green", "value": 1 },
+              { "color": "orange", "value": 24 },
+              { "color": "red", "value": 168 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "value_and_name"
+      },
       "targets": [
         {
           "refId": "A",
           "rawQuery": true,
           "format": "table",
-          "rawSql": "SELECT ROUND(AVG(lead_time_minutes)/60.0, 2) AS hours FROM issues WHERE type='INCIDENT' AND created_date > DATE_SUB(NOW(), INTERVAL 90 DAY) AND resolution_date IS NOT NULL"
+          "rawSql": "SELECT ROUND(AVG(lead_time_minutes) / 60.0, 2) AS hours FROM issues WHERE type='INCIDENT' AND created_date BETWEEN FROM_UNIXTIME($__unixEpochFrom()) AND FROM_UNIXTIME($__unixEpochTo()) AND resolution_date IS NOT NULL AND ('$include_synthetic' = 'true' OR source IS NULL OR source != 'synthetic')"
         }
       ]
     },
     {
-      "datasource": { "type": "mysql", "uid": "DevLake" },
-      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 4 },
       "id": 5,
-      "title": "Deploys by week (last 26w)",
       "type": "timeseries",
+      "title": "Deploys per week",
+      "description": "Weekly deploy counts over the selected window.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "mysql", "uid": "DevLake" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 2,
+            "axisLabel": "",
+            "axisPlacement": "auto"
+          },
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "options": { "legend": { "displayMode": "hidden" }, "tooltip": { "mode": "single" } },
       "targets": [
         {
           "refId": "A",
           "rawQuery": true,
           "format": "time_series",
-          "rawSql": "SELECT DATE(FROM_DAYS(TO_DAYS(p.finished_date) - MOD(TO_DAYS(p.finished_date) - 2, 7))) AS time, COUNT(*) AS value FROM cicd_pipelines p WHERE p.type='DEPLOYMENT' AND p.finished_date > DATE_SUB(NOW(), INTERVAL 26 WEEK) GROUP BY 1 ORDER BY 1"
+          "rawSql": "SELECT DATE(FROM_DAYS(TO_DAYS(p.finished_date) - MOD(TO_DAYS(p.finished_date) - 2, 7))) AS time, COUNT(*) AS value FROM cicd_pipelines p JOIN cicd_pipeline_commits pc ON pc.pipeline_id = p.id JOIN repos r ON r.id = pc.repo_id WHERE p.type='DEPLOYMENT' AND p.finished_date BETWEEN FROM_UNIXTIME($__unixEpochFrom()) AND FROM_UNIXTIME($__unixEpochTo()) AND r.name IN ($repo) AND ('$include_synthetic' = 'true' OR p.source IS NULL OR p.source != 'synthetic') GROUP BY 1 ORDER BY 1"
         }
       ]
     },
     {
-      "datasource": { "type": "mysql", "uid": "DevLake" },
-      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 4 },
       "id": 6,
-      "title": "PR cycle time (hours) by repo",
-      "type": "bargauge",
+      "type": "table",
+      "title": "DORA band per repo",
+      "description": "Google DORA 2023 classification per repository, computed over the selected window.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "mysql", "uid": "DevLake" },
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "auto" } },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "band" },
+            "properties": [
+              { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "basic" } },
+              {
+                "id": "mappings",
+                "value": [
+                  { "type": "value", "options": { "Elite":  { "color": "super-light-green", "index": 0 } } },
+                  { "type": "value", "options": { "High":   { "color": "green",             "index": 1 } } },
+                  { "type": "value", "options": { "Medium": { "color": "orange",            "index": 2 } } },
+                  { "type": "value", "options": { "Low":    { "color": "red",               "index": 3 } } }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": { "showHeader": true },
       "targets": [
         {
           "refId": "A",
           "rawQuery": true,
           "format": "table",
-          "rawSql": "SELECT r.name AS repo, ROUND(AVG(TIMESTAMPDIFF(HOUR, pr.created_date, pr.merged_date)), 2) AS mean_hours FROM pull_requests pr JOIN repos r ON r.id = pr.base_repo_id WHERE pr.merged_date > DATE_SUB(NOW(), INTERVAL 90 DAY) GROUP BY r.name ORDER BY mean_hours DESC"
+          "rawSql": "SELECT r.name AS repo, COUNT(DISTINCT p.id) AS deploys, ROUND(AVG(TIMESTAMPDIFF(HOUR, c.authored_date, p.finished_date)), 2) AS lead_time_h, CASE WHEN COUNT(DISTINCT p.id) >= 90 AND AVG(TIMESTAMPDIFF(HOUR, c.authored_date, p.finished_date)) < 1 THEN 'Elite' WHEN COUNT(DISTINCT p.id) >= 13 AND AVG(TIMESTAMPDIFF(HOUR, c.authored_date, p.finished_date)) < 24 THEN 'High' WHEN COUNT(DISTINCT p.id) >= 3 AND AVG(TIMESTAMPDIFF(HOUR, c.authored_date, p.finished_date)) < 168 THEN 'Medium' ELSE 'Low' END AS band FROM repos r LEFT JOIN cicd_pipeline_commits pc ON pc.repo_id = r.id LEFT JOIN cicd_pipelines p ON p.id = pc.pipeline_id AND p.type='DEPLOYMENT' AND p.result='SUCCESS' AND p.finished_date BETWEEN FROM_UNIXTIME($__unixEpochFrom()) AND FROM_UNIXTIME($__unixEpochTo()) AND ('$include_synthetic' = 'true' OR p.source IS NULL OR p.source != 'synthetic') LEFT JOIN commits c ON c.sha = pc.commit_sha WHERE r.name IN ($repo) GROUP BY r.name ORDER BY deploys DESC"
         }
       ]
     },
     {
-      "datasource": { "type": "mysql", "uid": "DevLake" },
-      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 13 },
+      "id": 200,
+      "type": "text",
+      "title": "",
+      "gridPos": { "h": 2, "w": 24, "x": 0, "y": 16 },
+      "options": {
+        "mode": "markdown",
+        "content": "### AI-era signals\n\nThese three panels are the differentiators vs. a DORA-only view. Higher ACG = more AI plan-abandonment; top contributors by batch-commit count ≈ heaviest AI adopters; persona comparison shows how DORA differs by engineering style."
+      }
+    },
+    {
       "id": 7,
-      "title": "Top contributors (90d)",
-      "type": "table",
+      "type": "bargauge",
+      "title": "Architecture-Code Gap (by engineer)",
+      "description": "PR iteration × post-merge churn proxy for Mark Nelson's AI-plan-abandonment metric. Higher = more mid-stream rework.",
+      "gridPos": { "h": 9, "w": 8, "x": 0, "y": 18 },
+      "datasource": { "type": "mysql", "uid": "DevLake" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "continuous-GrYlRd" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 5 }, { "color": "red", "value": 15 }] },
+          "unit": "short"
+        }
+      },
+      "options": { "displayMode": "gradient", "orientation": "horizontal", "showUnfilled": true, "valueMode": "color" },
       "targets": [
         {
           "refId": "A",
           "rawQuery": true,
           "format": "table",
-          "rawSql": "SELECT a.user_name AS author, COUNT(c.sha) AS commits, SUM(c.additions) AS lines_added, SUM(c.deletions) AS lines_removed FROM accounts a LEFT JOIN commits c ON c.author_id = a.id AND c.authored_date > DATE_SUB(NOW(), INTERVAL 90 DAY) GROUP BY a.user_name HAVING commits > 0 ORDER BY commits DESC LIMIT 25"
+          "rawSql": "SELECT a.user_name AS engineer, ROUND(AVG(cnt.c), 2) AS acg_score FROM accounts a JOIN pull_requests pr ON pr.author_id = a.id LEFT JOIN (SELECT pull_request_id, COUNT(*) AS c FROM pull_request_comments GROUP BY pull_request_id) cnt ON cnt.pull_request_id = pr.id WHERE pr.merged_date BETWEEN FROM_UNIXTIME($__unixEpochFrom()) AND FROM_UNIXTIME($__unixEpochTo()) AND ('$include_synthetic' = 'true' OR a.source IS NULL OR a.source != 'synthetic') GROUP BY a.user_name HAVING acg_score IS NOT NULL ORDER BY acg_score DESC LIMIT 12"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "bargauge",
+      "title": "AI adoption spread (batch commits per engineer)",
+      "description": "Count of commits larger than 250 lines — a proxy for AI-generated batch changes.",
+      "gridPos": { "h": 9, "w": 8, "x": 8, "y": 18 },
+      "datasource": { "type": "mysql", "uid": "DevLake" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "continuous-BlPu" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "options": { "displayMode": "gradient", "orientation": "horizontal", "showUnfilled": true, "valueMode": "color" },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "format": "table",
+          "rawSql": "SELECT a.user_name AS engineer, COUNT(*) AS batch_commits FROM commits c JOIN accounts a ON a.id = c.author_id WHERE c.authored_date BETWEEN FROM_UNIXTIME($__unixEpochFrom()) AND FROM_UNIXTIME($__unixEpochTo()) AND (c.additions + c.deletions) > 250 AND ('$include_synthetic' = 'true' OR c.source IS NULL OR c.source != 'synthetic') GROUP BY a.user_name ORDER BY batch_commits DESC LIMIT 12"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "DORA comparison: AI power users vs Traditional",
+      "description": "Buckets engineers by mean diff size (high ≥ 300 LoC, mixed 120-300, low < 120) and reports cohort metrics.",
+      "gridPos": { "h": 9, "w": 8, "x": 16, "y": 18 },
+      "datasource": { "type": "mysql", "uid": "DevLake" },
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "auto" } },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "persona" },
+            "properties": [
+              { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "basic" } },
+              {
+                "id": "mappings",
+                "value": [
+                  { "type": "value", "options": { "AI Power User": { "color": "purple",       "index": 0 } } },
+                  { "type": "value", "options": { "AI Adopter":    { "color": "blue",         "index": 1 } } },
+                  { "type": "value", "options": { "Traditional":   { "color": "light-green",  "index": 2 } } }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": { "showHeader": true },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "format": "table",
+          "rawSql": "WITH per_author AS (SELECT c.author_id, COUNT(*) AS commits, AVG(c.additions + c.deletions) AS mean_diff, AVG(TIMESTAMPDIFF(HOUR, pr.created_date, pr.merged_date)) AS cycle_hours FROM commits c LEFT JOIN pull_requests pr ON pr.author_id = c.author_id AND pr.merged_date BETWEEN FROM_UNIXTIME($__unixEpochFrom()) AND FROM_UNIXTIME($__unixEpochTo()) WHERE c.authored_date BETWEEN FROM_UNIXTIME($__unixEpochFrom()) AND FROM_UNIXTIME($__unixEpochTo()) AND ('$include_synthetic' = 'true' OR c.source IS NULL OR c.source != 'synthetic') GROUP BY c.author_id) SELECT CASE WHEN mean_diff >= 300 THEN 'AI Power User' WHEN mean_diff >= 120 THEN 'AI Adopter' ELSE 'Traditional' END AS persona, COUNT(*) AS engineers, ROUND(AVG(commits), 0) AS avg_commits, ROUND(AVG(mean_diff), 0) AS avg_diff, ROUND(AVG(cycle_hours), 1) AS avg_cycle_h FROM per_author GROUP BY persona ORDER BY FIELD(persona, 'AI Power User', 'AI Adopter', 'Traditional')"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Recent incidents",
+      "description": "Incidents in the selected window, newest first.",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 27 },
+      "datasource": { "type": "mysql", "uid": "DevLake" },
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "auto" } },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "severity" },
+            "properties": [
+              { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "basic" } },
+              {
+                "id": "mappings",
+                "value": [
+                  { "type": "value", "options": { "critical": { "color": "red",    "index": 0 } } },
+                  { "type": "value", "options": { "high":     { "color": "orange", "index": 1 } } },
+                  { "type": "value", "options": { "medium":   { "color": "yellow", "index": 2 } } }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "ttr_h" },
+            "properties": [{ "id": "unit", "value": "h" }]
+          }
+        ]
+      },
+      "options": { "showHeader": true },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "format": "table",
+          "rawSql": "SELECT i.title, i.severity, i.created_date AS opened, ROUND(i.lead_time_minutes / 60.0, 2) AS ttr_h, i.original_type AS archetype FROM issues i WHERE i.type='INCIDENT' AND i.created_date BETWEEN FROM_UNIXTIME($__unixEpochFrom()) AND FROM_UNIXTIME($__unixEpochTo()) AND ('$include_synthetic' = 'true' OR i.source IS NULL OR i.source != 'synthetic') ORDER BY i.created_date DESC LIMIT 15"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Top contributors",
+      "description": "Sorted by commit count over the selected window.",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 27 },
+      "datasource": { "type": "mysql", "uid": "DevLake" },
+      "fieldConfig": { "defaults": { "custom": { "align": "auto" } } },
+      "options": { "showHeader": true },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "format": "table",
+          "rawSql": "SELECT a.user_name AS engineer, COUNT(c.sha) AS commits, SUM(c.additions) AS lines_added, SUM(c.deletions) AS lines_removed FROM accounts a LEFT JOIN commits c ON c.author_id = a.id AND c.authored_date BETWEEN FROM_UNIXTIME($__unixEpochFrom()) AND FROM_UNIXTIME($__unixEpochTo()) WHERE ('$include_synthetic' = 'true' OR a.source IS NULL OR a.source != 'synthetic') GROUP BY a.user_name HAVING commits > 0 ORDER BY commits DESC LIMIT 20"
         }
       ]
     }
-  ],
-  "refresh": "5m",
-  "schemaVersion": 39,
-  "tags": ["dora", "devlake"],
-  "templating": { "list": [] },
-  "time": { "from": "now-90d", "to": "now" },
-  "timezone": "browser",
-  "title": "DORA Overview",
-  "uid": "devlake-dora-overview",
-  "version": 1,
-  "weekStart": ""
+  ]
 }

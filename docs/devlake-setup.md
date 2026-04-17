@@ -20,7 +20,7 @@ $EDITOR devlake-config/env       # GITHUB_TOKEN + passwords
 
 ## What to verify after bootstrap
 
-- Grafana home: <http://localhost:3000> — should load and render the DORA
+- Grafana home: <http://localhost:3002> — should load and render the DORA
   Overview dashboard (DORA folder). Counts will be near-zero until the
   pipeline finishes ingesting.
 - DevLake config UI: <http://localhost:4000> — log in with

@@ -43,7 +43,7 @@ cat <<EOF
 Bootstrap complete.
 
 Next:
-  - Grafana:         http://localhost:3000  (${GF_SECURITY_ADMIN_USER} / ${GF_SECURITY_ADMIN_PASSWORD})
+  - Grafana:         http://localhost:3002  (${GF_SECURITY_ADMIN_USER} / ${GF_SECURITY_ADMIN_PASSWORD})
   - DevLake config:  http://localhost:4000  (${DEVLAKE_ADMIN_USER} / ${DEVLAKE_ADMIN_PASS})
   - DevLake API:     http://localhost:8080
 
