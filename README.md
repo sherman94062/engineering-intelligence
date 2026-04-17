@@ -1,5 +1,7 @@
 # engineering-intelligence
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/sherman94062/engineering-intelligence?quickstart=1)
+
 A self-hosted, open-source stand-in for DX ([getdx.com](https://getdx.com)).
 Runs [Apache DevLake](https://devlake.apache.org) locally to ingest real
 engineering data from GitHub, layers a synthetic 12-engineer team on top for
@@ -8,8 +10,14 @@ MCP server so Claude Desktop, Claude Code, or any MCP-compatible client can
 answer questions like *"what's my change failure rate this quarter?"* against
 real data.
 
-> First time setting this up? Read [WALKTHROUGH.md](./WALKTHROUGH.md) — it's
-> the end-to-end story with every gotcha we hit, in the order we hit them.
+> **Want to just see it?** Click *Open in Codespaces* above. Three minutes
+> later the dashboard is populated with synthetic data — no GitHub token or
+> local docker needed. Then follow [docs/vpe-demo.md](./docs/vpe-demo.md) for
+> the 15-minute walkthrough.
+>
+> **Setting it up locally with your own GitHub data?** Read
+> [WALKTHROUGH.md](./WALKTHROUGH.md) — the end-to-end story with every gotcha
+> we hit, in the order we hit them.
 
 ## Stack
 
@@ -123,6 +131,7 @@ engineering-intelligence/
 |------|--------|
 | [CLAUDE.md](./CLAUDE.md) | Full architecture, data strategy, persona design, ACG metric |
 | [WALKTHROUGH.md](./WALKTHROUGH.md) | Zero-to-working walkthrough with every gotcha |
+| [docs/vpe-demo.md](./docs/vpe-demo.md) | **15-minute scripted demo for showing this to a VPE** |
 | [docs/devlake-setup.md](./docs/devlake-setup.md) | DevLake lifecycle: bootstrap, re-run, reset |
 | [docs/mcp-setup.md](./docs/mcp-setup.md) | MCP server wiring for Claude Desktop + Claude Code |
 | [docs/synthetic-data.md](./docs/synthetic-data.md) | Synthetic layer, tagging, determinism |
