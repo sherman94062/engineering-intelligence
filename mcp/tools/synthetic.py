@@ -30,8 +30,8 @@ def status() -> list[dict[str, Any]]:
             result = run_query(
                 f"""
                 SELECT
-                    SUM(CASE WHEN source = 'synthetic' THEN 1 ELSE 0 END) AS synthetic,
-                    SUM(CASE WHEN source IS NULL OR source != 'synthetic' THEN 1 ELSE 0 END) AS real
+                    SUM(CASE WHEN source = 'synthetic' THEN 1 ELSE 0 END) AS synthetic_rows,
+                    SUM(CASE WHEN source IS NULL OR source != 'synthetic' THEN 1 ELSE 0 END) AS real_rows
                 FROM `{table}`
                 """
             )

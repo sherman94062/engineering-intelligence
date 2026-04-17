@@ -10,27 +10,27 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastmcp import FastMCP
 
 ROOT = Path(__file__).resolve().parent
 ENV_FILE = ROOT.parent / "devlake-config" / "env"
 if ENV_FILE.exists():
     load_dotenv(ENV_FILE)
 
-mcp = FastMCP(
-    name="devlake",
-    instructions=(
-        "Read-only access to a local Apache DevLake instance. "
-        "Use dora__* for DORA metrics, team__* for team dynamics, "
-        "contributors__* for per-engineer analysis, synthetic__* to inspect "
-        "and toggle the synthetic data layer, and schema__* for ad-hoc SQL."
-    ),
-)
+# The single shared FastMCP instance. Importing this BEFORE importing the
+# tool modules is important — every tool registers against `mcp`.
+from mcp_instance import mcp  # noqa: E402
 
-# Register tool modules. Each module attaches its tools with @mcp.tool().
+# Importing these modules is what registers all 23 tools.
 from tools import contributors, dora, repos, schema, synthetic, team  # noqa: E402,F401
 
+# ASGI app exposed as `server:app` so uvicorn (and MCP clients via HTTP)
+# see the same instance that has tools registered.
+app = mcp.http_app()
+
+
 if __name__ == "__main__":
+    import uvicorn
+
     host = os.getenv("MCP_HOST", "0.0.0.0")
     port = int(os.getenv("MCP_PORT", "8811"))
-    mcp.run(transport="http", host=host, port=port)
+    uvicorn.run(app, host=host, port=port, log_level="info")

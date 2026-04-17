@@ -11,8 +11,15 @@ from typing import Any
 
 
 def get_mcp():
-    # Late import to avoid a circular import during server bootstrap.
-    from server import mcp
+    """Return the shared FastMCP instance.
+
+    Historically a late-bound `from server import mcp` lived here to avoid a
+    circular import; that pattern produced two distinct FastMCP instances
+    when server.py ran as __main__ (tools registered on one, HTTP served
+    from the other). Now the instance is defined in `mcp_instance.py` and
+    both server.py and every tool module import it from the same place.
+    """
+    from mcp_instance import mcp
     return mcp
 
 
